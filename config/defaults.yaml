@@ -1,0 +1,85 @@
+# 默认配置文件
+# 使用配置的流程：1.在 config 目录创建一个新的 yaml 文件。2. 重写需要修改的配置项。  可参考 baseline.yaml
+
+############ 必须自定义的配置 #############
+
+# 基本信息
+model_name: null  # 项目名，目前只用作展示，无实际作用。
+model_version: null  # 用于区分不同实验的模型特点，一般与配置文件名称相同
+base_path: null  # 一般为项目的根目录路径，所有的后续路径以此为起点
+# 会自动注入一个变量保存模型输出 output_dir: base_path + outputs + model_version
+
+# 数据路径
+data_path:
+  train_file: null
+  eval_file: null
+  test_file: null
+  predict_file: null
+
+########## 其他自定义配置项 ############
+
+# 流程控制
+is_train: true
+is_eval: true
+is_test: true
+is_predict: true
+
+# 运行环境配置
+device: cuda  # cpu or cuda
+gpu_list: ""  # 在特定的显卡上运行，如"0, 1"，默认使用全部显卡
+
+# 运行过程的一些配置
+runner:
+  num_train_epochs: 10  # epoch
+  seed: 1234  # 随机种子
+
+  metric_for_best_model: loss  # 用于评价模型效果的指标名称
+  greater_is_better: false  # 评价指标是否是越大越好。false 表示越小越好
+
+  early_stopping: false  # 是否开启 early stop
+  early_stopping_patience: 5  # early stop 的 patience
+  early_stopping_threshold: 0  # early stop 的阈值
+
+  report_to:
+    - tensorboard  # 可选 tensorboard, wandb, none
+#  logging_dir: null  # 训练报告保存路径，如果不填，则默认为 output_dir + /runs
+
+# data 相关配置
+data:
+  per_device_batch_size: 8
+  per_device_train_batch_size: ${data.per_device_batch_size}
+  per_device_eval_batch_size: ${data.per_device_batch_size}
+  dataloader_num_workers: 0
+  label_names:
+    - labels
+
+
+# model 相关配置。 如 pretrained_model, hidden_dim 等模型内部参数
+model:
+  pretrained_model: bert-base-chinese  # 也可填已下载的模型路径
+  max_seq_length: 512
+
+
+# optimizer 相关配置
+optimizer:
+  optim: adamw_hf  # 选择优化器，adamw_hf, adamw_torch, adamw_apex_fused, adamw_anyprecision or adafactor.
+  learning_rate: 2e-5
+  weight_decay: 0
+
+# scheduler 相关配置
+scheduler:
+  lr_scheduler_type: linear  # scheduler 类型，默认为 linear，即线性增长。其他的还有例如 cosine, polynomial 等。 详见 https://huggingface.co/docs/transformers/main_classes/optimizer_schedules#transformers.SchedulerType
+  warmup_ratio: 0.2  # 表示将学习率从 0 增长到目标值所占用的总步数比例。默认值 0 意味着不使用 scheduler，直接达到目标学习率
+  warmup_steps: 0  # 表示将学习率从 0 增长到目标值所占用的总步数。此配置会覆盖 warmup_ratio，即此配置优先级更高。
+
+# task 相关配置。保留作为完全自定义的一些配置，跟当前任务有关，例如不同 loss 的权重等。
+task: {}
+
+# checkpoint 相关配置
+checkpoint:
+  save_strategy: epoch  # 模型的保存策略，可选 no, epoch, steps
+  save_steps: 500  # 每隔多少步保存，只有在 save_strategy=steps 时生效
+  evaluation_strategy: epoch  # 模型的评估策略，可选 no, epoch, steps
+  eval_steps: 500  # 每隔多少步评估，只有在 eval_strategy=steps 时生效
+  save_total_limit: 0  # 最多保存多少个 checkpoint，超出后会删除旧的，保存新的。0 表示不限制
+  resume_from_checkpoint: false  # 是否从 checkpoint 恢复训练, 默认为 false, 也可填 checkpoint 路径, 例如 "outputs/2021-01-01_00-00-00/checkpoint-1000", 也可填 "true"，表示使用最新的 checkpoint。

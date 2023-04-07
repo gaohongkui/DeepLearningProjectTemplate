@@ -1,0 +1,61 @@
+############ 必须自定义的配置 #############
+
+# 基本信息
+model_name: demo  # 项目名，目前只用作展示，无实际作用。
+model_version: baseline  # 用于区分不同实验的模型特点，一般与配置文件名称相同
+base_path: /home/ghk/WorkSpace/Githubs/DeepLearningProjectTemplate  # 一般为项目的根目录路径，所有的后续路径以此为起点
+# 会自动注入一个变量保存模型输出 output_dir: base_path + outputs + model_version
+
+# 数据路径
+data_path:
+  train_file: datasets/tnews_public/train.json
+  eval_file: datasets/tnews_public/dev.json
+  test_file: datasets/tnews_public/dev.json
+  predict_file: datasets/tnews_public/test.json
+  labels_file: datasets/tnews_public/labels.json  # 额外添加的数据路径
+
+########## 其他自定义配置项 ############
+
+# 流程控制
+is_train: true
+is_eval: true
+is_test: true
+is_predict: true
+
+# 运行环境配置
+device: cuda  # cpu or cuda
+gpu_list: ""  # 在特定的显卡上运行，如"0, 1"，默认使用全部显卡
+
+
+# model 相关配置。 如 pretrained_model, hidden_dim 等模型内部参数
+model:
+  pretrained_model: bert-base-chinese  # 也可填已下载的模型路径
+  max_seq_length: 128
+  num_classes: 15
+
+# 运行过程的一些配置
+runner:
+  num_train_epochs: 20  # epoch
+  metric_for_best_model: f1  # 用于评价模型效果的指标名称
+  greater_is_better: true  # 评价指标是否是越大越好。false 表示越小越好
+
+  early_stopping: true  # 是否开启 early stop
+  early_stopping_patience: 2  # early stop 的 patience
+
+# data 相关配置
+data:
+  per_device_batch_size: 128
+  label_names:
+    - labels
+
+# optimizer 相关配置
+optim: adamw_hf
+
+# checkpoint 相关配置
+checkpoint:
+  save_strategy: epoch  # 模型的保存策略，可选 no, epoch, steps
+  save_steps: 500  # 每隔多少步保存，只有在 save_strategy=steps 时生效
+  evaluation_strategy: epoch  # 模型的评估策略，可选 no, epoch, steps
+  eval_steps: 500  # 每隔多少步评估，只有在 eval_strategy=steps 时生效
+  save_total_limit: 3  # 保存的模型数量限制，超过则删除旧的模型
+  resume_from_checkpoint: false
