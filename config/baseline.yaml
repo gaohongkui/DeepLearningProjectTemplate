@@ -49,7 +49,8 @@ data:
     - labels
 
 # optimizer 相关配置
-optim: adamw_hf
+optimizer:
+  optim: adamw_hf
 
 # checkpoint 相关配置
 checkpoint:
