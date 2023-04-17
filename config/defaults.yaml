@@ -35,13 +35,14 @@ runner:
 
   metric_for_best_model: loss  # 用于评价模型效果的指标名称
   greater_is_better: false  # 评价指标是否是越大越好。false 表示越小越好
+  gradient_accumulation_steps: 1  # 梯度累积步数，用于模拟更大的 batch size
 
   early_stopping: false  # 是否开启 early stop
   early_stopping_patience: 5  # early stop 的 patience
   early_stopping_threshold: 0  # early stop 的阈值
 
   report_to:
-    - tensorboard  # 可选 tensorboard, wandb, none
+    - none  # 可选 tensorboard, wandb, none
 #  logging_dir: null  # 训练报告保存路径，如果不填，则默认为 output_dir + /runs
 
 # data 相关配置
@@ -63,7 +64,7 @@ model:
 # optimizer 相关配置
 optimizer:
   optim: adamw_hf  # 选择优化器，adamw_hf, adamw_torch, adamw_apex_fused, adamw_anyprecision or adafactor.
-  learning_rate: 2e-5
+  learning_rate: 2.0e-5
   weight_decay: 0
 
 # scheduler 相关配置

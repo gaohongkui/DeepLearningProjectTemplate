@@ -33,6 +33,7 @@ def run(config):
         no_cuda=config.device == 'cpu',
         metric_for_best_model=config.runner.metric_for_best_model,
         greater_is_better=config.runner.greater_is_better,
+        gradient_accumulation_steps=config.runner.gradient_accumulation_steps,
 
         num_train_epochs=config.runner.num_train_epochs,
         per_device_train_batch_size=config.data.per_device_train_batch_size,
