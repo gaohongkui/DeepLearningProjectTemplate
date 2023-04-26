@@ -28,5 +28,5 @@ class MyTrainer(Trainer):
         logits = outputs["logits"]
         # 自定义损失函数
         loss_fct = nn.CrossEntropyLoss()
-        loss = loss_fct(logits.view(-1, self.model.custom_config.model.num_classes), labels.view(-1))
+        loss = loss_fct(logits.view(-1, self.model.num_classes), labels.view(-1))
         return (loss, outputs) if return_outputs else loss

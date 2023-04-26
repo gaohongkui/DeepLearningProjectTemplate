@@ -6,8 +6,10 @@
 # @author: gaohongkui <gaohongkui1021@163.com>
 # @date: 2023/4/4
 #
+import os
 
 import jsonlines
+import torch
 from loguru import logger
 from transformers import TrainingArguments, default_data_collator, PretrainedConfig, EarlyStoppingCallback
 
@@ -15,7 +17,7 @@ from dataset import MyDataset
 from metric import MyMetric
 from model import MyModel
 from trainer import MyTrainer
-from utils import set_seed, set_gpus, load_config, save_best_model, load_best_model
+from utils import set_seed, set_gpus, load_config
 
 
 # 统一训练、测试、预测的入口
@@ -73,8 +75,9 @@ def run(config):
     train_dataset = MyDataset(config, 'train')
     eval_dataset = MyDataset(config, 'eval')
     # 加载模型
-    pretrained_config = PretrainedConfig.from_pretrained(config.model.pretrained_model)
-    model = MyModel(pretrained_config, config)
+    pretrained_config = PretrainedConfig.from_pretrained(config.model.pretrained_model)  # 预训练模型的配置
+    pretrained_config.update(config.model)  # 更新配置
+    model = MyModel(pretrained_config)
     # 加载 metric
     metric = MyMetric(config)
     # 加载 trainer
@@ -89,6 +92,7 @@ def run(config):
         callbacks=callbacks
     )
 
+    best_model_path = os.path.join(config.output_dir, "best")
     # 训练
     if config.is_train:
         logger.info('*** Training ***')
@@ -97,36 +101,48 @@ def run(config):
         logger.info(train_results)
         trainer.save_metrics("train", train_results.metrics)
         # 最优模型保存
-        save_best_model(config, model)
+        # save_best_model(config, model)
+        trainer.save_model(best_model_path)
 
-    # 加载最优模型
-    load_best_model(config, model)
-    # 验证
-    if config.is_eval:
-        logger.info('*** Evaluating ***')
-        eval_results = trainer.evaluate(eval_dataset)
-        logger.info(f"*** Eval results: ***".center(20))
-        logger.info(eval_results)
-        trainer.save_metrics("eval", eval_results)
-    # 测试
-    if config.is_test:
-        logger.info('*** Testing ***')
-        test_datasets = MyDataset(config, 'test')
-        test_results = trainer.evaluate(test_datasets)
-        logger.info(f"*** Test results: ***".center(20))
-        logger.info(test_results)
-        trainer.save_metrics("test", test_results)
-    # 预测
-    if config.is_predict:
-        logger.info('*** Predicting ***')
-        predict_datasets = MyDataset(config, 'predict')
-        predict_results = trainer.predict(predict_datasets)
-        # 解码并保存预测结果
-        predict_results = metric.decode(predict_results, predict_datasets)
-        save_path = config.output_dir + "/best/pred_results.jsonl"
-        with jsonlines.open(save_path, "w") as fout:
-            fout.write_all(predict_results)
-        logger.info(f"*** pred results saved to {save_path} ***".center(20))
+    with torch.no_grad():
+        # 加载最优模型
+        model = MyModel.from_pretrained(best_model_path, config=pretrained_config)
+        trainer = MyTrainer(
+            model=model,
+            args=training_args,
+            data_collator=default_data_collator,
+            train_dataset=train_dataset,
+            eval_dataset=eval_dataset,
+            compute_metrics=metric.compute_metrics,
+
+            callbacks=callbacks
+        )
+        # 验证
+        if config.is_eval:
+            logger.info('*** Evaluating ***')
+            eval_results = trainer.evaluate(eval_dataset)
+            logger.info(f"*** Eval results: ***".center(20))
+            logger.info(eval_results)
+            trainer.save_metrics("eval", eval_results)
+        # 测试
+        if config.is_test:
+            logger.info('*** Testing ***')
+            test_datasets = MyDataset(config, 'test')
+            test_results = trainer.evaluate(test_datasets)
+            logger.info(f"*** Test results: ***".center(20))
+            logger.info(test_results)
+            trainer.save_metrics("test", test_results)
+        # 预测
+        if config.is_predict:
+            logger.info('*** Predicting ***')
+            predict_datasets = MyDataset(config, 'predict')
+            predict_results = trainer.predict(predict_datasets)
+            # 解码并保存预测结果
+            predict_results = metric.decode(predict_results, predict_datasets)
+            save_path = os.path.join(config.output_dir, "best/pred_results.jsonl")
+            with jsonlines.open(save_path, "w") as fout:
+                fout.write_all(predict_results)
+            logger.info(f"*** pred results saved to {save_path} ***".center(20))
 
 
 if __name__ == '__main__':

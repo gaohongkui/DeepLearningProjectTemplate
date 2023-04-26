@@ -10,20 +10,20 @@ import torch
 from torch import nn
 from transformers import BertModel, PreTrainedModel, PretrainedConfig
 
-from utils import load_tokenizer, load_config
+from utils import load_config
 
 
 class MyModel(PreTrainedModel):
-    def __init__(self, pretrained_config, custom_config):
-        super(MyModel, self).__init__(pretrained_config)
-        self.custom_config = custom_config
+    def __init__(self, config):
+        super(MyModel, self).__init__(config)
+        self.pretrained_model = config.pretrained_model
+        self.num_classes = config.num_classes
 
-        self.bert = BertModel.from_pretrained(self.custom_config.model.pretrained_model)
-        self.tokenizer = load_tokenizer(self.custom_config)
+        self.bert = BertModel.from_pretrained(self.pretrained_model)
 
         # 定义分类层
         self.dropout = nn.Dropout(self.bert.config.hidden_dropout_prob)
-        self.classifier = nn.Linear(self.bert.config.hidden_size, self.custom_config.model.num_classes)
+        self.classifier = nn.Linear(self.bert.config.hidden_size, self.num_classes)
 
     def forward(self, **kwargs):
         # 获取输入
@@ -50,7 +50,8 @@ if __name__ == '__main__':
     # 测试模型
     config = load_config("config/baseline.yaml")
     pretrained_config = PretrainedConfig.from_pretrained(config.model.pretrained_model)
-    model = MyModel(pretrained_config, config)
+    pretrained_config.update(config.model)  # 更新配置
+    model = MyModel(pretrained_config)
     print(model)
     # 模拟输入
     input_ids = torch.randint(0, 100, (2, 10))
